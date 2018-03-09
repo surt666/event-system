@@ -1,4 +1,4 @@
-(ns event-system.core
+(ns event-system.write
   (:gen-class
    :implements [com.amazonaws.services.lambda.runtime.RequestStreamHandler])
   (:require [amazonica.aws.s3 :refer [put-object]]
