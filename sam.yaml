@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Aggregate Sag Lambda og Gateway
+Parameters:
+  Stage:
+    Type: String
+  CodeUri:
+    Type: String
+  Role:
+    Type: String
+Resources:
+  AggregateSagFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: event-system.write
+      Runtime: java8
+      CodeUri: !Ref CodeUri
+      MemorySize: 1024
+      Role: !Ref Role
+      Timeout: 20
+      Tracing: Active
+      AutoPublishAlias: !Ref Stage
+
+#Outputs:
+#  ApiUrl:
+#    Description: URL of your API endpoint
+#    Value: !Join
+#      - ''
+#      - - https://
+#        - !Ref ApiGatewayApi
+#        - '.execute-api.'
+#        - !Ref 'AWS::Region'
+#        - '.amazonaws.com/local'
+
+#aws cloudformation deploy --template-file "event-system-$AGGR_SAG_LAMBDA_TEST_VERSION.yaml" --stack-name event-test --capabilities CAPABILITY_IAM --region eu-west-1 --parameter-overrides Stage=dev CodeUri=target/event-system-0.1.0-standalone.jar Role=arn:aws:iam::593176282530:role/lambda-s3-execution-role
