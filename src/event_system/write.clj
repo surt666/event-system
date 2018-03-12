@@ -7,6 +7,15 @@
             [clojure.java.io :as io]
             [cheshire.core :refer :all]))
 
+(def opgaver ["opgave-oprettet" "sagsbehandler-tilfoejet"])
+
+(def vurderinger ["skoen-oprettet" "tillaeg-oprettet"])
+
+(def sager ["sag-oprettet" "jp-oprettet" "jn-oprettet"])
+
+(defn in? [coll item]
+  (some #{item} coll))
+
 (defn mk-req-handler
   "Makes a request handler"
   [f & [wrt]]
@@ -20,54 +29,73 @@
         res w)
       (.flush w))))
 
-(def opgaver ["opgave-oprettet" "sagsbehandler-tilfoejet"])
+(defn get-tx [type]
+  (get-in (update-item
+           :table-name "tx-counter"
+           :key {:type type}
+           :update-expression "SET seq = seq + :incr"
+           :expression-attribute-values {":incr" 1}
+           :return-values "UPDATED_NEW") [:attributes :seq]))
 
-(def vurderinger ["skoen-oprettet" "tillaeg-oprettet"])
+(defn get-tx [type]
+  (get-in (update-item
+           :table-name "tx-counter"
+           :key {:type type}
+           :update-expression "SET seq = seq + :incr"
+           :expression-attribute-values {":incr" 1}
+           :return-values "UPDATED_NEW") [:attributes :seq]))
 
-(def sager ["sag-oprettet" "jp-oprettet" "jn-oprettet"])
-
-(defn in? [coll item]
-  (some #{item} coll))
-
-(defn payload [e]
-  (cond
-    (= "sag-oprettet" (e :type)) {}
-    (= "opgave-oprettet" (e :type)) {}
-    (= "tillaeg-oprettet") (e :type)) {:entitet (e :entitet)
-                                       :entitet-id (e :entitet-id)
-                                       :del (e :del)
-                                       :vaerdi (e :vaerdi)
-                                       :kald-gvk (e :kald-gvk)
-                                       :procent (e :procent)
-                                       :begrundelse (e :begrundelse)
-                                       :oprettet-af (e :oprettet-af)
-                                       :termin (e :termin)
-                                       :slut-termin  (e :slut-termin)
-                                       :opgave-id (e :opgave-id)})
-
-(defn write-event [e]
-  (prn "E" e)
-  (let [type (cond
-               (in? sager (e :type)) "sags-events"
-               (in? opgaver (e :type)) "opgave-events"
-               (in? vurderinger (e :type)) "vur-events")]
-    ;; (put-object :bucket-name "test-events-vur2"
-    ;;             :key (str type "/" (e :vur-ejd-id) "/" (e :id))
-    ;;             :input-stream (ByteArrayInputStream. (.getBytes (encode e))))
-    (put-item :table-name type
+(defn create-sags-event [type data]
+  (let [table (cond
+               (in? sager type) "sags-events"
+               (in? opgaver type) "opgave-events"
+               (in? vurderinger type) "vur-events")
+        item (cond
+               (= "sags-events" table) {:type type
+                                        :sags-id (data :sags-id)
+                                        :tx (get-tx "sager")
+                                        :payload data}
+               (= "opgave-events" table) {:type type
+                                        :vur-ejd-id (data :vur-ejd-id)
+                                        :tx (get-tx "opgaver")
+                                        :payload data}
+               (= "vur-events" table) {:type type
+                                        :vur-ejd-id (data :vur-ejd-id)
+                                        :tx (get-tx "vurderinger")
+                                       :payload data})]
+    (put-item :table-name table
               :return-consumed-capacity "TOTAL"
               :return-item-collection-metrics "SIZE"
-              :item (if (= "sags-events" type)
-                      {:sags-id (e :sags-id)
-                       :tx (get-tx "opgaver")
-                       :type (e :type)
-                       :payload (payload e)}
-                      {:vur-ejd-id (e :vur-ejd-id)
-                       :tx (get-tx "opgaver")
-                       :type (e :type)
-                       :payload (payload e)}))
-    ;; (publish :topic-arn "arn:aws:sns:eu-west-1:593176282530:EventReceived"
-    ;;          :message (str (e :vur-ejd-id)))
-    ))
+              :item item)))
 
-(def -handleRequest (mk-req-handler write-event))
+(defn handle-events [body]
+  (cond
+    (= (get-in body [:context :resource-path]) "/sag") (create-sags-event "sag-oprettet" (body :body-json))
+    (= (get-in body [:context :resource-path]) "/sag/{sagsid}") (create-sags-event "sag-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
+    (= (get-in body [:context :resource-path]) "/jp/{sagsid}") (create-sags-event "jp-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
+    (= (get-in body [:context :resource-path]) "/jp/{sagsid}/{jpid}") (create-sags-event "jp-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
+    (= (get-in body [:context :resource-path]) "/jn/{sagsid}/{jpid}") (create-sags-event "jn-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
+    (= (get-in body [:context :resource-path]) "/jn/{sagsid}/{jpid}/{jnid}") (create-sags-event "jn-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid]) :jn-id :jp-id (get-in body [:params :path :jnid])))
+    (= (get-in body [:context :resource-path]) "/dokument/{sagsid}/{jpid}") (create-sags-event "dokument-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
+    (= (get-in body [:context :resource-path]) "/dokument/{sagsid}/{jpid}/{dokid}") (create-sags-event "dokument-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid]) :jn-id :dok-id (get-in body [:params :path :dokid])))
+    (= (get-in body [:context :resource-path]) "/part/{sagsid}") (create-sags-event "part-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
+    (= (get-in body [:context :resource-path]) "/part/{sagsid}/{partid}") (create-sags-event "part-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :part-id (get-in body [:params :path :partid])))
+    :default {:rp (get-in body [:context :resource-path])}))
+
+(def -handleRequest (mk-req-handler handle-events))
+
+;; (defn payload [e]
+;;   (cond
+;;     (= "sag-oprettet" (e :type)) (handle-sags-events e)
+;;     (= "opgave-oprettet" (e :type)) {}
+;;     (= "tillaeg-oprettet") (e :type)) {:entitet (e :entitet)
+;;                                        :entitet-id (e :entitet-id)
+;;                                        :del (e :del)
+;;                                        :vaerdi (e :vaerdi)
+;;                                        :kald-gvk (e :kald-gvk)
+;;                                        :procent (e :procent)
+;;                                        :begrundelse (e :begrundelse)
+;;                                        :oprettet-af (e :oprettet-af)
+;;                                        :termin (e :termin)
+;;                                        :slut-termin  (e :slut-termin)
+;;                                        :opgave-id (e :opgave-id)})
