@@ -74,7 +74,7 @@ jobs:
 
       # build stack
       # - run: aws cloudformation package --template-file /tmp/artifact/sam.yaml --s3-bucket dk.vurdst.ice.artifacts --output-template-file packaged-template.yaml
-     
+
       - run: cat /tmp/artifact/version >> $BASH_ENV
       - run: aws s3 cp target/event-system-$V-standalone.jar s3://dk.vurdst.ice.artifact
       - run: echo 'export EXISTS=`aws s3 ls "s3://dk.vurdst.ice.artifacts/event-system-$V-standalone.jar"`' >> $BASH_ENV
@@ -88,7 +88,7 @@ jobs:
       #- run: aws s3 cp packaged-template.yaml "s3://dk.vurdst.ice.artifacts/aggregate-sag-lambda-$V.yaml"
 
       # deploy stack
-      - run: aws cloudformation deploy --template-file packaged-template.yaml --stack-name event-system-dev --capabilities CAPABILITY_IAM --region eu-west-1 --parameter-overrides Stage=dev CodeUri="target/event-system-$V-standalone.jar" Role=arn:aws:iam::593176282530:role/lambda-s3-execution-role
+      - run: aws cloudformation deploy --template-file packaged-template.yaml --stack-name event-system --capabilities CAPABILITY_IAM --region eu-west-1 --parameter-overrides Stage=dev CodeUri="s3://dk.vurdst.ice.artifact/event-system-$V-standalone.jar" Role=arn:aws:iam::593176282530:role/lambda-s3-execution-role
 
 workflows:
   version: 2
