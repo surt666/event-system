@@ -76,14 +76,16 @@ jobs:
       # - run: aws cloudformation package --template-file /tmp/artifact/sam.yaml --s3-bucket dk.vurdst.ice.artifacts --output-template-file packaged-template.yaml
 
       - run: cat /tmp/artifact/version >> $BASH_ENV
-      - run: aws s3 cp /tmp/artifact/target/event-system-$V-standalone.jar s3://dk.vurdst.ice.artifacts
+
       - run: echo 'export EXISTS=`aws s3 ls "s3://dk.vurdst.ice.artifacts/event-system-$V-standalone.jar"`' >> $BASH_ENV
+
       - run:
           command: |
             if [ -n "$EXISTS" ]; then
-              echo "Version exists already"
-            else
+              aws s3 cp /tmp/artifact/target/event-system-$V-standalone.jar s3://dk.vurdst.ice.artifacts
               aws cloudformation deploy --template-file packaged-template.yaml --stack-name event-system --capabilities CAPABILITY_IAM --region eu-west-1 --parameter-overrides Stage=dev CodeUri="s3://dk.vurdst.ice.artifacts/event-system-$V-standalone.jar" Role=arn:aws:iam::593176282530:role/lambda-s3-execution-role
+            else
+              echo "Version exists already"
             fi
 
 workflows:
