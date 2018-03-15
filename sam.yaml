@@ -14,7 +14,7 @@ Resources:
   EventSystemFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: event-system.write
+      Handler: event_system.write
       Runtime: java8
       CodeUri:
         Bucket: !Ref Bucket
