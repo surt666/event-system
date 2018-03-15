@@ -17,8 +17,8 @@ Resources:
       Handler: event-system.write
       Runtime: java8
       CodeUri:
-        !Ref Bucket
-        !Ref Key
+        Bucket: !Ref Bucket
+        Key: !Ref Key
       MemorySize: 1024
       Role: !Ref Role
       Timeout: 20
