@@ -87,7 +87,7 @@ jobs:
               echo "Version exists already"
             fi
 
-      - run: aws cloudformation deploy --template-file /tmp/artifact/sam.yaml --stack-name event-system --capabilities CAPABILITY_IAM --region eu-west-1 --parameter-overrides Stage=dev Bucket=s3://dk.vurdst.ice.artifacts Key="event-system-$V-standalone.jar" Role=arn:aws:iam::593176282530:role/lambda-s3-execution-role
+      - run: aws cloudformation deploy --template-file /tmp/artifact/sam.yaml --stack-name EventSystem --capabilities CAPABILITY_IAM --region eu-west-1 --parameter-overrides Stage=dev Bucket=s3://dk.vurdst.ice.artifacts Key="event-system-$V-standalone.jar" Role=arn:aws:iam::593176282530:role/lambda-s3-execution-role
 
 workflows:
   version: 2
