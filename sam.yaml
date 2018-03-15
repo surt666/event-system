@@ -9,7 +9,7 @@ Parameters:
   Role:
     Type: String
 Resources:
-  AggregateSagFunction:
+  EventSystemFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: event-system.write
