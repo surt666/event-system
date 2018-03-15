@@ -9,7 +9,7 @@
 
 (def opgaver ["opgave-oprettet" "sagsbehandler-tilfoejet"])
 
-(def vurderinger ["opret-skoen" "opret-tillaeg"])
+(def vurderinger ["skoen-oprettet" "tillaeg-oprettet"])
 
 (def sager ["sag-oprettet" "jp-oprettet" "jn-oprettet"])
 
@@ -50,6 +50,7 @@
            :return-values "UPDATED_NEW") [:attributes :seq]))
 
 (defn create-event [type data]
+  (prn "TYPE" type)
   (let [table (cond
                (in? sager type) "sags-events"
                (in? opgaver type) "opgave-events"
