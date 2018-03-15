@@ -4,7 +4,9 @@ Description: Event system
 Parameters:
   Stage:
     Type: String
-  CodeUri:
+  Bucket:
+    Type: String
+  Key:
     Type: String
   Role:
     Type: String
@@ -14,7 +16,9 @@ Resources:
     Properties:
       Handler: event-system.write
       Runtime: java8
-      CodeUri: !Ref CodeUri
+      CodeUri:
+        !Ref Bucket
+        !Ref Key
       MemorySize: 1024
       Role: !Ref Role
       Timeout: 20
