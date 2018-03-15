@@ -45,7 +45,7 @@
            :expression-attribute-values {":incr" 1}
            :return-values "UPDATED_NEW") [:attributes :seq]))
 
-(defn create-sags-event [type data]
+(defn create-event [type data]
   (let [table (cond
                (in? sager type) "sags-events"
                (in? opgaver type) "opgave-events"
@@ -62,25 +62,27 @@
                (= "vur-events" table) {:type type
                                         :vur-ejd-id (data :vur-ejd-id)
                                         :tx (get-tx "vurderinger")
-                                       :payload data})]
+                                        :payload data})]
     (put-item :table-name table
               :return-consumed-capacity "TOTAL"
               :return-item-collection-metrics "SIZE"
               :item item)))
 
+
 (defn handle-events [body]
   (prn "BODY" body)
   (cond
-    (= (get-in body [:context :resource-path]) "/sag") (create-sags-event "sag-oprettet" (body :body-json))
-    (= (get-in body [:context :resource-path]) "/sag/{sagsid}") (create-sags-event "sag-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
-    (= (get-in body [:context :resource-path]) "/jp/{sagsid}") (create-sags-event "jp-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
-    (= (get-in body [:context :resource-path]) "/jp/{sagsid}/{jpid}") (create-sags-event "jp-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
-    (= (get-in body [:context :resource-path]) "/jn/{sagsid}/{jpid}") (create-sags-event "jn-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
-    (= (get-in body [:context :resource-path]) "/jn/{sagsid}/{jpid}/{jnid}") (create-sags-event "jn-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid]) :jn-id :jp-id (get-in body [:params :path :jnid])))
-    (= (get-in body [:context :resource-path]) "/dokument/{sagsid}/{jpid}") (create-sags-event "dokument-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
-    (= (get-in body [:context :resource-path]) "/dokument/{sagsid}/{jpid}/{dokid}") (create-sags-event "dokument-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid]) :jn-id :dok-id (get-in body [:params :path :dokid])))
-    (= (get-in body [:context :resource-path]) "/part/{sagsid}") (create-sags-event "part-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
-    (= (get-in body [:context :resource-path]) "/part/{sagsid}/{partid}") (create-sags-event "part-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :part-id (get-in body [:params :path :partid])))
+    (= (get-in body [:context :resource-path]) "/sag") (create-event "sag-oprettet" (body :body-json))
+    (= (get-in body [:context :resource-path]) "/sag/{sagsid}") (create-event "sag-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
+    (= (get-in body [:context :resource-path]) "/jp/{sagsid}") (create-event "jp-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
+    (= (get-in body [:context :resource-path]) "/jp/{sagsid}/{jpid}") (create-event "jp-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
+    (= (get-in body [:context :resource-path]) "/jn/{sagsid}/{jpid}") (create-event "jn-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
+    (= (get-in body [:context :resource-path]) "/jn/{sagsid}/{jpid}/{jnid}") (create-event "jn-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid]) :jn-id :jp-id (get-in body [:params :path :jnid])))
+    (= (get-in body [:context :resource-path]) "/dokument/{sagsid}/{jpid}") (create-event "dokument-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid])))
+    (= (get-in body [:context :resource-path]) "/dokument/{sagsid}/{jpid}/{dokid}") (create-event "dokument-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid]) :jn-id :dok-id (get-in body [:params :path :dokid])))
+    (= (get-in body [:context :resource-path]) "/part/{sagsid}") (create-event "part-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
+    (= (get-in body [:context :resource-path]) "/part/{sagsid}/{partid}") (create-event "part-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :part-id (get-in body [:params :path :partid])))
+    (= (get-in body [:context :resource-path]) "/command") (create-event (get-in body [:body-json :action]) (get-in body [:body-json :data]))
     :default {:rp (get-in body [:context :resource-path])}))
 
 (def -handleRequest (mk-req-handler handle-events))
