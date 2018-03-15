@@ -9,9 +9,13 @@
 
 (def opgaver ["opgave-oprettet" "sagsbehandler-tilfoejet"])
 
-(def vurderinger ["skoen-oprettet" "tillaeg-oprettet"])
+(def vurderinger ["opret-skoen" "opret-tillaeg"])
 
 (def sager ["sag-oprettet" "jp-oprettet" "jn-oprettet"])
+
+(defn command2event [c]
+  (cond
+    (= c "opret-skoen") "skoen-oprettet"))
 
 (defn in? [coll item]
   (some #{item} coll))
@@ -56,12 +60,12 @@
                                         :tx (get-tx "sager")
                                         :payload data}
                (= "opgave-events" table) {:type type
-                                        :vur-ejd-id (data :vur-ejd-id)
-                                        :tx (get-tx "opgaver")
-                                        :payload data}
+                                          :vur-ejd-id (data :vur-ejd-id)
+                                          :tx (get-tx "opgaver")
+                                          :payload data}
                (= "vur-events" table) {:type type
-                                        :vur-ejd-id (data :vur-ejd-id)
-                                        :tx (get-tx "vurderinger")
+                                       :vur-ejd-id (data :vur-ejd-id)
+                                       :tx (get-tx "vurderinger")
                                        :payload data})]
     (prn "ITEM" table item)
     (put-item :table-name table
@@ -83,7 +87,7 @@
     (= (get-in body [:context :resource-path]) "/dokument/{sagsid}/{jpid}/{dokid}") (create-event "dokument-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :jp-id (get-in body [:params :path :jpid]) :jn-id :dok-id (get-in body [:params :path :dokid])))
     (= (get-in body [:context :resource-path]) "/part/{sagsid}") (create-event "part-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
     (= (get-in body [:context :resource-path]) "/part/{sagsid}/{partid}") (create-event "part-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :part-id (get-in body [:params :path :partid])))
-    (= (get-in body [:context :resource-path]) "/command") (create-event (get-in body [:body-json :action]) (get-in body [:body-json :data]))
+    (= (get-in body [:context :resource-path]) "/command") (create-event (command2event (get-in body [:body-json :action])) (get-in body [:body-json :data]))
     :default {:rp (get-in body [:context :resource-path])}))
 
 (def -handleRequest (mk-req-handler handle-events))
