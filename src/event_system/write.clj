@@ -9,13 +9,18 @@
 
 (def opgaver ["opgave-oprettet" "sagsbehandler-tilfoejet"])
 
-(def vurderinger ["skoen-oprettet" "tillaeg-oprettet"])
+(def vurderinger ["skoen-oprettet" "tillaeg-oprettet" "nedslag-oprettet" "kvm-pris-oprettet"])
 
-(def sager ["sag-oprettet" "jp-oprettet" "jn-oprettet"])
+(def sager ["sag-oprettet""sag-opdateret" "jp-oprettet" "jp-opdateret" "jn-oprettet" "jn-opdateret" "dokument-oprettet" "dokument-opdateret" "part-oprettet" "part-opdateret"])
 
 (defn command2event [c]
   (cond
-    (= c "opret-skoen") "skoen-oprettet"))
+    (= c "opret-skoen") "skoen-oprettet"
+    (= c "opret-kvm-pris") "kvm-pris-oprettet"
+    (= c "opret-tillaeg") "tillaeg-oprettet"
+    (= c "opret-nedslag") "nedslag-oprettet"
+    (= c "opret-opgave") "opgave-oprettet"
+    (= c "tilfoej-sagsbehandler") "sagsbehandler-tilfoejet"))
 
 (defn in? [coll item]
   (some #{item} coll))
@@ -41,16 +46,7 @@
            :expression-attribute-values {":incr" 1}
            :return-values "UPDATED_NEW") [:attributes :seq]))
 
-(defn get-tx [type]
-  (get-in (update-item
-           :table-name "tx-counter"
-           :key {:type type}
-           :update-expression "SET seq = seq + :incr"
-           :expression-attribute-values {":incr" 1}
-           :return-values "UPDATED_NEW") [:attributes :seq]))
-
 (defn create-event [type data]
-  (prn "TYPE" type)
   (let [table (cond
                (in? sager type) "sags-events"
                (in? opgaver type) "opgave-events"
@@ -63,20 +59,18 @@
                (= "opgave-events" table) {:type type
                                           :vur-ejd-id (data :vur-ejd-id)
                                           :tx (get-tx "opgaver")
-                                          :payload data}
+                                          :payload (dissoc data :vur-ejd-id)}
                (= "vur-events" table) {:type type
                                        :vur-ejd-id (data :vur-ejd-id)
                                        :tx (get-tx "vurderinger")
-                                       :payload data})]
-    (prn "ITEM" table item)
-    (put-item :table-name table
+                                       :payload (dissoc data :vur-ejd-id)})]
+       (put-item :table-name table
               :return-consumed-capacity "TOTAL"
               :return-item-collection-metrics "SIZE"
               :item item)))
 
 
 (defn handle-events [body]
-  (prn "BODY" body (get-in body [:body-json :action]) (get-in body [:body-json :data]))
   (cond
     (= (get-in body [:context :resource-path]) "/sag") (create-event "sag-oprettet" (body :body-json))
     (= (get-in body [:context :resource-path]) "/sag/{sagsid}") (create-event "sag-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
@@ -92,19 +86,3 @@
     :default {:rp (get-in body [:context :resource-path])}))
 
 (def -handleRequest (mk-req-handler handle-events))
-
-;; (defn payload [e]
-;;   (cond
-;;     (= "sag-oprettet" (e :type)) (handle-sags-events e)
-;;     (= "opgave-oprettet" (e :type)) {}
-;;     (= "tillaeg-oprettet") (e :type)) {:entitet (e :entitet)
-;;                                        :entitet-id (e :entitet-id)
-;;                                        :del (e :del)
-;;                                        :vaerdi (e :vaerdi)
-;;                                        :kald-gvk (e :kald-gvk)
-;;                                        :procent (e :procent)
-;;                                        :begrundelse (e :begrundelse)
-;;                                        :oprettet-af (e :oprettet-af)
-;;                                        :termin (e :termin)
-;;                                        :slut-termin  (e :slut-termin)
-;;                                        :opgave-id (e :opgave-id)})
