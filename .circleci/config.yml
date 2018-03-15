@@ -81,7 +81,7 @@ jobs:
 
       - run:
           command: |
-            if [ -n "$EXISTS" ]; then
+            if [ -z "$EXISTS" ]; then
               aws s3 cp /tmp/artifact/target/event-system-$V-standalone.jar s3://dk.vurdst.ice.artifacts
               aws cloudformation deploy --template-file packaged-template.yaml --stack-name event-system --capabilities CAPABILITY_IAM --region eu-west-1 --parameter-overrides Stage=dev CodeUri="s3://dk.vurdst.ice.artifacts/event-system-$V-standalone.jar" Role=arn:aws:iam::593176282530:role/lambda-s3-execution-role
             else
