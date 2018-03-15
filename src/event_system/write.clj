@@ -5,7 +5,11 @@
             [amazonica.aws.sns :refer [publish]]
             [amazonica.aws.dynamodbv2 :refer :all]
             [clojure.java.io :as io]
-            [cheshire.core :refer :all]))
+            [cheshire.core :refer :all]
+            [clj-time.core :as t]
+            [clj-time.format :as f]))
+
+(def basic-formatter (f/formatters :basic-date-time))
 
 (def opgaver ["opgave-oprettet" "sagsbehandler-tilfoejet"])
 
@@ -55,14 +59,17 @@
                (= "sags-events" table) {:type type
                                         :sags-id (data :sags-id)
                                         :tx (get-tx "sager")
+                                        :oprettet (f/unparse basic-formatter (t/now))
                                         :payload data}
                (= "opgave-events" table) {:type type
                                           :vur-ejd-id (data :vur-ejd-id)
                                           :tx (get-tx "opgaver")
+                                          :oprettet (f/unparse basic-formatter (t/now))
                                           :payload (dissoc data :vur-ejd-id)}
                (= "vur-events" table) {:type type
                                        :vur-ejd-id (data :vur-ejd-id)
                                        :tx (get-tx "vurderinger")
+                                       :oprettet (f/unparse basic-formatter (t/now))
                                        :payload (dissoc data :vur-ejd-id)})]
        (put-item :table-name table
               :return-consumed-capacity "TOTAL"
