@@ -62,7 +62,8 @@
                (= "vur-events" table) {:type type
                                         :vur-ejd-id (data :vur-ejd-id)
                                         :tx (get-tx "vurderinger")
-                                        :payload data})]
+                                       :payload data})]
+    (prn "ITEM" table item)
     (put-item :table-name table
               :return-consumed-capacity "TOTAL"
               :return-item-collection-metrics "SIZE"
