@@ -71,7 +71,7 @@
 
 
 (defn handle-events [body]
-  (prn "BODY" body)
+  (prn "BODY" body (get-in body [:body-json :action]) (get-in body [:body-json :data]))
   (cond
     (= (get-in body [:context :resource-path]) "/sag") (create-event "sag-oprettet" (body :body-json))
     (= (get-in body [:context :resource-path]) "/sag/{sagsid}") (create-event "sag-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
