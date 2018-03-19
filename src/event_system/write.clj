@@ -36,7 +36,7 @@
   (cond
     (= action "find-sag") (find-sag data)
     (= action "find-ejendom") (find-ejendom data)
-    {= action "find-vurdering"} (find-vurdering data)))
+    (= action "find-vurdering") (find-vurdering data)))
 
 (defn in? [coll item]
   (some #{item} coll))
