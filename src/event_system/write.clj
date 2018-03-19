@@ -26,6 +26,18 @@
     (= c "opret-opgave") "opgave-oprettet"
     (= c "tilfoej-sagsbehandler") "sagsbehandler-tilfoejet"))
 
+(defn find-sag [data])
+
+(defn find-ejendom [data])
+
+(defn find-vurdering [data])
+
+(defn query [action data]
+  (cond
+    (= action "find-sag") (find-sag data)
+    (= action "find-ejendom") (find-ejendom data)
+    {= action "find-vurdering"} (find-vurdering data)))
+
 (defn in? [coll item]
   (some #{item} coll))
 
@@ -90,6 +102,7 @@
     (= (get-in body [:context :resource-path]) "/part/{sagsid}") (create-event "part-oprettet" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid])))
     (= (get-in body [:context :resource-path]) "/part/{sagsid}/{partid}") (create-event "part-opdateret" (assoc (body :body-json) :sags-id (get-in body [:params :path :sagsid]) :part-id (get-in body [:params :path :partid])))
     (= (get-in body [:context :resource-path]) "/command") (create-event (command2event (get-in body [:body-json :action])) (get-in body [:body-json :data]))
+    (= (get-in body [:context :resource-path]) "/query") (query (get-in body [:body-json :action]) (get-in body [:body-json :data]))
     :default {:rp (get-in body [:context :resource-path])}))
 
 (def -handleRequest (mk-req-handler handle-events))
