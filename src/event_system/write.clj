@@ -2,7 +2,7 @@
   (:gen-class
    :implements [com.amazonaws.services.lambda.runtime.RequestStreamHandler])
   (:require [amazonica.aws.s3 :refer [put-object]]
-            [amazonica.aws.sns :refer [publish]]
+           ; [amazonica.aws.sns :refer [publish]]
             [amazonica.aws.dynamodbv2 :refer :all]
             [clojure.java.io :as io]
             [cheshire.core :refer :all]
@@ -11,7 +11,7 @@
 
 (def basic-formatter (f/formatters :basic-date-time))
 
-(def opgaver ["opgave-oprettet" "sagsbehandler-tilfoejet"])
+(def opgaver ["opgave-oprettet" "opgave-sagsbehandler-tilfoejet" "opgave-lukket" "opgave-startet" "opgave-stoppet"])
 
 (def vurderinger ["skoen-oprettet" "tillaeg-oprettet" "nedslag-oprettet" "kvm-pris-oprettet"])
 
@@ -24,7 +24,10 @@
     (= c "opret-tillaeg") "tillaeg-oprettet"
     (= c "opret-nedslag") "nedslag-oprettet"
     (= c "opret-opgave") "opgave-oprettet"
-    (= c "tilfoej-sagsbehandler") "sagsbehandler-tilfoejet"))
+    (= c "luk-opgave") "opgave-lukket"
+    (= c "tilfoej-sagsbehandler-opgave") "opgave-sagsbehandler-tilfoejet"
+    (= c "start-opgave") "opgave-startet"
+    (= c "stop-opgave") "opgave-stoppet"))
 
 (defn find-sag [data])
 
@@ -77,13 +80,13 @@
                                           :vur-ejd-id (data :vur-ejd-id)
                                           :tx (get-tx "opgaver")
                                           :oprettet (f/unparse basic-formatter (t/now))
-                                          :payload (dissoc data :vur-ejd-id)}
+                                          :payload (dissoc data :vur-ejd-id :type)}
                (= "vur-events" table) {:type type
                                        :vur-ejd-id (data :vur-ejd-id)
                                        :tx (get-tx "vurderinger")
                                        :oprettet (f/unparse basic-formatter (t/now))
                                        :payload (dissoc data :vur-ejd-id)})]
-       (put-item :table-name table
+    (put-item :table-name table
               :return-consumed-capacity "TOTAL"
               :return-item-collection-metrics "SIZE"
               :item item)))
